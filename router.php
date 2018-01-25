@@ -104,7 +104,7 @@ class Router {
 					if (call_user_func($this->guard_callback)) {
 						call_user_func($route_callback, $args);
 					} else {
-						// header("Location: " . $route_info["fallback"]);
+						header("Location: " . $route_info["fallback"]);
 						echo "unauthorized";
 					}
 				} else {

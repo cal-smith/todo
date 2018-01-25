@@ -13,18 +13,23 @@ $router = new Router();
 
 $router->set_route_guard(function() {
 	session_start();
-	$conn = db_connect();
-	$result = pg_query_params($conn, "select * from users where id = $1", [$_SESSION["user_id"]]);
-
-	if (!$result) { send_error(500, "db error"); }
-
-	$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
-
-	if (isset($_SESSION["user_id"]) && $_SESSION["user_id"] === $row["id"]) {
+	if (isset($_SESSION["user_id"])) {
+		$user_id = $_SESSION["user_id"];
 		session_write_close();
-		return true;
+		$conn = db_connect();
+
+		$result = pg_query_params($conn, "select * from users where id = $1 limit 1", [$user_id]);
+
+		if (!$result) { send_error(500, "db error"); }
+
+		$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
+		if ($row && isset($user_id) && $user_id === $row["id"]) {
+			session_write_close();
+			pg_free_result($result);
+			pg_close($conn);
+			return true;
+		}
 	}
-	session_write_close();
 	return false;
 });
 
@@ -70,6 +75,7 @@ $router->post("/login", function() {
 				$_SESSION["id_token"] = $id_token;
 				$_SESSION["user_id"] = $user_id;
 				$_SESSION["given_name"] = $payload["given_name"];
+				$_SESSION["picture"] = $payload["picture"];
 				session_write_close();
 				echo $id_token;
 				echo "/todos";

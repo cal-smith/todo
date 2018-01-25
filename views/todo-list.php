@@ -10,7 +10,8 @@
 <body>
 	<main>
 		<div class="controls">
-			<span><?= isset($_SESSION["given_name"])?$_SESSION["given_name"]:"Unknown" ?></span>
+			<img id="user-img" src="<?= isset($_SESSION["picture"])?$_SESSION["picture"]:"" ?>">
+			<span id="user-name"><?= isset($_SESSION["given_name"])?$_SESSION["given_name"]:"Unknown" ?></span>
 			<button id="logout">logout</button>
 		</div>
 		<form action="/post/todo" autocomplete="off" method="post" id="add-todo">
