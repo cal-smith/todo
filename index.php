@@ -92,7 +92,6 @@ $router->post("/login", function() {
 
 $router->get("/logout", function() {
 	session_start();
-	echo session_id();
 	session_destroy();
 	session_unset();
 	// redirect back home
@@ -104,28 +103,28 @@ $router->get("/todo/<id>", function($params) {
 	render_todo($params["id"]);
 });
 
-$router->post("/todo", function($params) {
+$router->post_guarded("/todo", function($params) {
 	add_todo(true);
 });
 
-$router->put("/todo/<id>", function($params) {
+$router->put_guarded("/todo/<id>", function($params) {
 	edit_todo($params["id"], true);
 });
 
-$router->delete("/todo/<id>", function($params) {
+$router->delete_guarded("/todo/<id>", function($params) {
 	delete_todo($params["id"], true);
 });
 
 // add compat routes
-$router->post("/post/todo", function() {
+$router->post_guarded("/post/todo", function() {
 	add_todo(false);
 });
 
-$router->post("/put/todo", function() {
+$router->post_guarded("/put/todo", function() {
 	edit_todo($_POST["id"], false);
 });
 
-$router->post("/delete/todo", function() {
+$router->post_guarded("/delete/todo", function() {
 	delete_todo($_POST["id"], false);
 });
 
