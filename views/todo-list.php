@@ -1,3 +1,8 @@
+<?php 
+	require_once "render-todo.php";
+	require_once "todos.php";
+	$todos = new Todos();
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,10 +20,23 @@
 			<button id="logout">logout</button>
 		</div>
 		<form action="/post/todo" autocomplete="off" method="post" id="add-todo">
-			<textarea name="body" placeholder="todo..."></textarea>
+			<textarea class="todo-body" name="body" placeholder="todo..."></textarea>
 			<button>Add Todo</button>
 		</form>
-		<?php require_once "render-todos.php"; ?>
+		<ul class="tabs">
+			<li><a href="#all">All</a></li>
+			<li><a href="#todo">Todo</a></li>
+			<li><a href="#done">Done</a></li>
+		</ul>
+		<div class="tab" id="all">
+			<?= render_todo_list($todos->get_all()); ?>
+		</div>
+		<div class="tab" id="todo">
+			<?= render_todo_list($todos->get_open()); ?>
+		</div>
+		<div class="tab" id="done">
+			<?= render_todo_list($todos->get_done()); ?>
+		</div>
 	</main>
 	<script src="https://apis.google.com/js/platform.js"></script>
 	<script type="text/javascript" src="index.js"></script>

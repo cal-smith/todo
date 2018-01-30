@@ -14,10 +14,10 @@ document.querySelector("#logout").addEventListener("click", () => {
 const getTodoHTML = () => fetch("render-todos.php", {credentials: "include"}).then(res => res.text());
 
 // callback for delete requests
-const deleteTodoCallback = async ev => {
-	ev.preventDefault();
-	ev.target.parentElement.classList.add("delete");
-	const button = ev.target.querySelector("button");
+const deleteTodoCallback = async event => {
+	event.preventDefault();
+	event.target.parentElement.classList.add("delete");
+	const button = event.target.querySelector("button");
 
 	button.classList.add("loading");
 	button.setAttribute("disabled", true);
@@ -32,30 +32,57 @@ const deleteTodoCallback = async ev => {
 	bindListeners();
 };
 
-const doneTodoCallback = async ev => {
-	ev.preventDefault();
-	ev.target.parentElement.classList.add("done");
-	const button = ev.target.querySelector("button");
-	const status = ev.target.querySelector("[name=status]");
+const doneTodoCallback = async event => {
+	event.preventDefault();
+
+	const todo = event.target.closest(".todo");
+	const button = todo.querySelector(".done-form .done");
+	const textarea = todo.querySelector(".edit-todo .edit-body");
+	const status = todo.querySelector("[name=status]");
+
+	todo.classList.toggle("done");
 
 	button.classList.add("loading");
 	button.setAttribute("disabled", true);
 
-	await fetch(`/todo/${button.value}`, {
-		method: "PUT",
-		body: JSON.stringify({status: status.value}),
-		credentials: "include"
-	});
-	todoList.innerHTML = await getTodoHTML();
+	putTodo(button.value, status.value === "done" ? "open" : "done", textarea.value);
 
 	button.classList.remove("loading");
 	button.setAttribute("disabled", false);
+};
+
+const editTodoCallback = async event => {
+	const todo = event.target.closest(".todo");
+	const textarea = todo.querySelector(".edit-todo .edit-body");
+	const status = todo.querySelector("[name=status]");
+	const save = todo.querySelector(".edit-todo .save");
+
+	save.classList.add("loading");
+	save.setAttribute("disabled", true);
+
+	putTodo(save.value, status.value, textarea.value);
+
+	save.classList.remove("loading");
+	save.setAttribute("disabled", false);
+
+};
+
+const putTodo = async (id, status, body) => {
+	await fetch(`/todo/${id}`, {
+		method: "PUT",
+		body: JSON.stringify({
+			status: status,
+			body: body
+		}),
+		credentials: "include"
+	});
+	todoList.innerHTML = await getTodoHTML();
 	bindListeners();
 };
 
 const bindListeners = () => {
 	bindDeleteListeners();
-	bindDoneListeners();
+	bindEditListeners();
 };
 
 const bindDeleteListeners = () => {
@@ -65,10 +92,31 @@ const bindDeleteListeners = () => {
 	}
 };
 
-const bindDoneListeners = () => {
-	const doneTodoForms = document.querySelectorAll(".done-form");
-	for (const doneForm of doneTodoForms) {
+const bindEditListeners = () => {
+	const todos = document.querySelectorAll(".todo");
+	for (const todo of todos) {
+		const doneForm = todo.querySelector(".done-form");
+		const editTextArea = todo.querySelector(".edit-body");
+		const editButton = todo.querySelector(".edit-button");
+
 		doneForm.addEventListener("submit", doneTodoCallback);
+		editTextArea.style.height = editTextArea.rows = editTextArea.value.split("\n").length;
+		editTextArea.addEventListener("keyup", event => event.target.rows = event.target.value.split("\n").length);
+		editButton.addEventListener("click", event => {
+			const todo = event.target.closest(".todo");
+			const save = todo.querySelector(".edit-todo .save");
+			const cancel = todo.querySelector(".edit-todo .cancel");
+			const editTodo = todo.querySelector(".edit-todo");
+			const renderedBody = todo.querySelector(".rendered-body");
+
+			editTodo.classList.toggle("editing");
+			renderedBody.classList.toggle("editing");
+			cancel.addEventListener("click", () => {
+				editTodo.classList.remove("editing");
+				renderedBody.classList.remove("editing");
+			});
+			save.addEventListener("click", editTodoCallback);
+		});
 	}
 };
 
