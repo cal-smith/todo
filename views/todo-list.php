@@ -24,14 +24,14 @@
 			<button>Add Todo</button>
 		</form>
 		<ul class="tabs">
-			<li><a href="#all">All</a></li>
-			<li><a href="#todo">Todo</a></li>
-			<li><a href="#done">Done</a></li>
+			<li class="tab-header" tab-id="all"><a href="#all">All</a></li>
+			<li class="tab-header" tab-id="open"><a href="#open">Todo</a></li>
+			<li class="tab-header" tab-id="done"><a href="#done">Done</a></li>
 		</ul>
-		<div class="tab" id="all">
+		<div class="tab visible" id="all">
 			<?= render_todo_list($todos->get_all()); ?>
 		</div>
-		<div class="tab" id="todo">
+		<div class="tab" id="open">
 			<?= render_todo_list($todos->get_open()); ?>
 		</div>
 		<div class="tab" id="done">

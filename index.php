@@ -8,6 +8,7 @@ require_once "vendor/autoload.php";
 require_once "common.php";
 require_once "router.php";
 require_once "todos.php";
+require_once "views/render-todo.php";
 use Ramsey\Uuid\Uuid;
 
 $router = new Router();
@@ -25,7 +26,7 @@ $router->set_route_guard(function() {
 		if (!$result) { send_error(500, "db error"); }
 
 		$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
-		if ($row && isset($user_id) && $user_id === $row["id"]) {
+		if ($row && isset($user_id) && $user_id === $row["user_id"]) {
 			session_write_close();
 			pg_free_result($result);
 			pg_close($conn);
@@ -62,7 +63,7 @@ $router->post("/login", function() {
 			$stored_id = "";
 
 			if ($row) {
-				$stored_id = $row["id"];
+				$stored_id = $row["user_id"];
 			} else {
 				$result = pg_query_params($conn, "insert into users (user_id) values ($1)", [$user_id]);
 				if (!$result) { send_error(500, "db error"); }
@@ -101,8 +102,19 @@ $router->get("/logout", function() {
 });
 
 $router->get("/todo/<id>", function($params) {
-	require "views/render-todo.php";
+	global $todos;
 	render_todo($todos->get_one($params["id"]));
+});
+
+$router->get("/render/todos/<state>", function($params) {
+	global $todos;
+	if ($params["state"] === "open") {
+		render_todo_list($todos->get_open());
+	} else if ($params["state"] === "done") {
+		render_todo_list($todos->get_done());
+	} else {
+		render_todo_list($todos->get_all());
+	}
 });
 
 $router->post_guarded("/todo", function($params) {
@@ -137,7 +149,7 @@ function delete_todo($id, $using_rest) {
 	if ($id == "") { send_error(400, "id shouldn't be empty (delete)");	}
 
 	$conn = db_connect();
-	$query = "delete from todos where id = $1";
+	$query = "delete from todos where todo_id = $1";
 	$result = pg_query_params($conn, $query, [$id]);
 
 	// exit if we get a false (error) result
@@ -170,7 +182,7 @@ function edit_todo($id, $using_rest) {
 	}
 
 	$conn = db_connect();
-	$query = "update todos set (status, body) = ($1, $2) where id = $3";
+	$query = "update todos set (status, body) = ($1, $2) where todo_id = $3";
 	$result = pg_query_params($conn, $query, [$status, $body, $id]);
 
 	// exit if we get a false (error) result

@@ -1,6 +1,39 @@
 const todoList = document.querySelector(".todolist");
 const addTodoForm = document.querySelector("#add-todo");
 
+/*
+ * todo functions
+ */
+
+const tabs = document.querySelectorAll(".tab");
+const tabHeaders = document.querySelectorAll(".tab-header");
+
+const switchTab = tabId => {
+	for (let tab of tabs) {
+		if (tab.id == tabId) {
+			tab.classList.add("visible");
+		} else {
+			tab.classList.remove("visible");
+		}
+	}
+	for (let tabHeader of tabHeaders) {
+		if (tabHeader.getAttribute("tab-id") === tabId) {
+			tabHeader.classList.add("selected");
+		} else {
+			tabHeader.classList.remove("selected");
+		}
+	}
+};
+
+for (const header of tabHeaders) {
+	header.addEventListener("click", event => {
+		event.preventDefault();
+		switchTab(header.getAttribute("tab-id"));
+	});
+}
+
+switchTab("all");
+
 // add logout handling
 document.querySelector("#logout").addEventListener("click", () => {
 	gapi.load('auth2', function() {
@@ -10,8 +43,24 @@ document.querySelector("#logout").addEventListener("click", () => {
 	});
 });
 
-// () => Promise<String>
-const getTodoHTML = () => fetch("render-todos.php", {credentials: "include"}).then(res => res.text());
+// String{"all" | "done" | "open"} => Promise<String>
+const getTodoHTML = (state = "all") => fetch(`/render/todos/${state}`, {credentials: "include"}).then(res => res.text());
+
+// () => Promise<void>
+const updateTodoList = () => {
+	const allTabBody = document.querySelector("#all");
+	const openTabBody = document.querySelector("#open");
+	const doneTabBody = document.querySelector("#done");
+	return Promise.all([
+		getTodoHTML("all"),
+		getTodoHTML("open"),
+		getTodoHTML("done")
+	]).then(values => {
+		allTabBody.innerHTML = values[0];
+		openTabBody.innerHTML = values[1];
+		doneTabBody.innerHTML = values[2];
+	})
+};
 
 // callback for delete requests
 const deleteTodoCallback = async event => {
@@ -26,12 +75,14 @@ const deleteTodoCallback = async event => {
 		method: "DELETE", 
 		credentials: "include"
 	});
-	todoList.innerHTML = await getTodoHTML();
+	
+	await updateTodoList();
 
 	button.classList.remove("loading");
 	bindListeners();
 };
 
+// callback to set todo to done
 const doneTodoCallback = async event => {
 	event.preventDefault();
 
@@ -51,6 +102,7 @@ const doneTodoCallback = async event => {
 	button.setAttribute("disabled", false);
 };
 
+// callback to edit todo
 const editTodoCallback = async event => {
 	const todo = event.target.closest(".todo");
 	const textarea = todo.querySelector(".edit-todo .edit-body");
@@ -67,6 +119,7 @@ const editTodoCallback = async event => {
 
 };
 
+// send a PUT request
 const putTodo = async (id, status, body) => {
 	await fetch(`/todo/${id}`, {
 		method: "PUT",
@@ -76,15 +129,19 @@ const putTodo = async (id, status, body) => {
 		}),
 		credentials: "include"
 	});
-	todoList.innerHTML = await getTodoHTML();
+	await updateTodoList();
 	bindListeners();
 };
 
+// function to bind ALL the listeners
 const bindListeners = () => {
 	bindDeleteListeners();
 	bindEditListeners();
 };
 
+/*
+ * these are concerned with binding listeners on all the elements
+ */
 const bindDeleteListeners = () => {
 	const deleteTodoForms = document.querySelectorAll(".delete-form");
 	for (const deleteForm of deleteTodoForms) {
@@ -120,6 +177,7 @@ const bindEditListeners = () => {
 	}
 };
 
+// listen for submits on the add todo form
 addTodoForm.addEventListener("submit", async ev => {
 	const button = addTodoForm.querySelector("button");
 
@@ -131,7 +189,7 @@ addTodoForm.addEventListener("submit", async ev => {
 		body: new FormData(ev.target),
 		credentials: "include"
 	}).catch(err => console.error(err));
-	todoList.innerHTML = await getTodoHTML();
+	await updateTodoList();
 	bindDeleteListeners();
 
 	addTodoForm.querySelector("textarea").value = "";

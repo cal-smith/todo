@@ -2,6 +2,7 @@
 	--default-text-color: #0f0f0f;
 	--default-border-radius: 5px;
 	--default-background-color: #fefefe;
+	--default-border-color: lightgray;
 
 	--default-button-background-color: dodgerblue;
 	--default-button-text-color: white;
@@ -114,11 +115,12 @@ a:visited {
 
 #add-todo {
 	display: inline-block;
-	border: 1px solid lightgray;
+	border: 1px solid var(--default-border-color);
 	padding: 10px;
 	max-width: 400px;
 	width: 100%;
 	border-radius: var(--default-border-radius);
+	margin-bottom: 10px; 
 }
 
 .todo-body {
@@ -151,18 +153,73 @@ a:visited {
 	}
 }
 
+/*
+ *
+ * tab styles
+ *
+ */
+
+.tabs {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	margin-left: 10px;
+}
+
+.tabs li {
+	display: inline-block;
+	padding: 10px;
+	border-top: 1px solid var(--default-border-color);
+	border-left: 1px solid var(--default-border-color);
+	border-right: 1px solid var(--default-border-color);
+	border-radius: var(--default-border-radius) var(--default-border-radius) 0px 0px;
+	background: var(--default-background-color);
+	color: var(--default-text-color);
+	cursor: pointer;
+}
+
+.tabs li:hover {
+	background: lightblue;
+}
+
+.tabs li a {
+	text-decoration: none;
+	color: var(--default-text-color);
+}
+
+.tabs li.selected {
+	background: var(--default-button-background-color);
+	color: var(--default-button-text-color);
+}
+
+.tabs li.selected a {
+	color: var(--default-button-text-color);	
+}
+
+.tab {
+	display: none;
+}
+
+.tab.visible {
+	display: block;
+}
+
+/*
+ *
+ * Todo styles 
+ *
+ */
 .todolist {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	margin-top: 10px;
 }
 
 .todo {
 	padding: 10px;
-	border-bottom: 1px solid lightgray;
-	border-left: 1px solid lightgray;
-	border-right: 1px solid lightgray;
+	border-bottom: 1px solid var(--default-border-color);
+	border-left: 1px solid var(--default-border-color);
+	border-right: 1px solid var(--default-border-color);
 }
 
 .todo .rendered-body {
@@ -195,7 +252,7 @@ a:visited {
 }
 
 .todo:first-child {
-	border-top: 1px solid lightgray;
+	border-top: 1px solid var(--default-border-color);
 	border-top-left-radius: var(--default-border-radius);
 	border-top-right-radius: var(--default-border-radius);
 }

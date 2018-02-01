@@ -9,12 +9,23 @@ class Todos {
 		session_start();
 		$this->session = $_SESSION;
 		session_write_close();
-		$this->user_id = $this->session["user_id"];
+		if (isset($this->session["user_id"])) {
+			$this->user_id = $this->session["user_id"];
+		} else {
+			// not great, but at least it will make things explode
+			// which ... if it gets to this point something is seriously wrong
+			$this->user_id = null;
+		}
 	}
 
 	// clean up when the GC runs
 	function __destruct() {
-		pg_close($this->conn);
+		// check if the connection has already been closed
+		// this is needed since pg_connect returns existing connections when it can
+		// which is more resource effeciant anyway
+		if (get_resource_type($this->conn) !== "Unknown") {
+			pg_close($this->conn);
+		}
 	}
 
 	// use up a result as an array
@@ -53,7 +64,7 @@ class Todos {
 	}
 
 	function get_one($todo_id) {
-		$query = "select * from todos where todo_id = $1";
-		return $this->do_query($query, [$todo_id]);
+		$query = "select * from todos where todo_id = $1 limit 1";
+		return $this->do_query($query, [$todo_id])[0];
 	}
 }
