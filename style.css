@@ -248,7 +248,7 @@ a:visited {
 }
 
 .todo .edit-body {
-
+	margin-bottom: 10px;
 }
 
 .todo.done {

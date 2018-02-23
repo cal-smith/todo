@@ -14,7 +14,8 @@ const app = new Vue({
 	el: "#app",
 	data: {
 		allTodos: [],
-		todos: []
+		todos: [],
+		currentFilter: "all"
 	},
 	created: function () {
 		fetch("/todos.json", { credentials: "include" })
@@ -32,7 +33,8 @@ const app = new Vue({
 		deleteTodo: async function (id) {
 			const savedTodo = this.todos.find(todo => todo.todo_id === id);
 			const todoIndex = this.todos.indexOf(savedTodo);
-			this.todos = this.todos.filter(todo => todo.todo_id !== id);
+			this.allTodos = this.allTodos.filter(todo => todo.todo_id !== id);
+			this.filterTodos(this.currentFilter);
 			try {
 				await fetch(`/todo/${id}`, {
 					method: "DELETE", 
@@ -40,13 +42,16 @@ const app = new Vue({
 				});
 			} catch (error) {
 				console.error(error);
-				this.todos.splice(todoIndex, 0, savedTodo);
+				this.allTodos.splice(todoIndex, 0, savedTodo);
+				this.filterTodos(this.currentFilter);
 			}
 		},
 		addTodo: function (todo) {
-			this.todos.unshift(todo);
+			this.allTodos.unshift(todo);
+			this.filterTodos(this.currentFilter);
 		},
 		filterTodos: function (status) {
+			this.currentFilter = status;
 			if (status === "all") {
 				this.todos = this.allTodos;
 			} else {
