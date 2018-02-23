@@ -1,39 +1,3 @@
-const todoList = document.querySelector(".todolist");
-const addTodoForm = document.querySelector("#add-todo");
-
-/*
- * todo functions
- */
-
-const tabs = document.querySelectorAll(".tab");
-const tabHeaders = document.querySelectorAll(".tab-header");
-
-const switchTab = tabId => {
-	for (let tab of tabs) {
-		if (tab.id == tabId) {
-			tab.classList.add("visible");
-		} else {
-			tab.classList.remove("visible");
-		}
-	}
-	for (let tabHeader of tabHeaders) {
-		if (tabHeader.getAttribute("tab-id") === tabId) {
-			tabHeader.classList.add("selected");
-		} else {
-			tabHeader.classList.remove("selected");
-		}
-	}
-};
-
-for (const header of tabHeaders) {
-	header.addEventListener("click", event => {
-		event.preventDefault();
-		switchTab(header.getAttribute("tab-id"));
-	});
-}
-
-switchTab("all");
-
 // add logout handling
 document.querySelector("#logout").addEventListener("click", () => {
 	gapi.load('auth2', function() {
@@ -43,159 +7,245 @@ document.querySelector("#logout").addEventListener("click", () => {
 	});
 });
 
-// String{"all" | "done" | "open"} => Promise<String>
-const getTodoHTML = (state = "all") => fetch(`/render/todos/${state}`, {credentials: "include"}).then(res => res.text());
+// vue stuff
+const eventBus = new Vue();
 
-// () => Promise<void>
-const updateTodoList = () => {
-	const allTabBody = document.querySelector("#all");
-	const openTabBody = document.querySelector("#open");
-	const doneTabBody = document.querySelector("#done");
-	return Promise.all([
-		getTodoHTML("all"),
-		getTodoHTML("open"),
-		getTodoHTML("done")
-	]).then(values => {
-		allTabBody.innerHTML = values[0];
-		openTabBody.innerHTML = values[1];
-		doneTabBody.innerHTML = values[2];
-	})
-};
-
-// callback for delete requests
-const deleteTodoCallback = async event => {
-	event.preventDefault();
-	event.target.parentElement.classList.add("delete");
-	const button = event.target.querySelector("button");
-
-	button.classList.add("loading");
-	button.setAttribute("disabled", true);
-
-	await fetch(`/todo/${button.value}`, {
-		method: "DELETE", 
-		credentials: "include"
-	});
-	
-	await updateTodoList();
-
-	button.classList.remove("loading");
-	bindListeners();
-};
-
-// callback to set todo to done
-const doneTodoCallback = async event => {
-	event.preventDefault();
-
-	const todo = event.target.closest(".todo");
-	const button = todo.querySelector(".done-form .done");
-	const textarea = todo.querySelector(".edit-todo .edit-body");
-	const status = todo.querySelector("[name=status]");
-
-	todo.classList.toggle("done");
-
-	button.classList.add("loading");
-	button.setAttribute("disabled", true);
-
-	putTodo(button.value, status.value === "done" ? "open" : "done", textarea.value);
-
-	button.classList.remove("loading");
-	button.setAttribute("disabled", false);
-};
-
-// callback to edit todo
-const editTodoCallback = async event => {
-	const todo = event.target.closest(".todo");
-	const textarea = todo.querySelector(".edit-todo .edit-body");
-	const status = todo.querySelector("[name=status]");
-	const save = todo.querySelector(".edit-todo .save");
-
-	save.classList.add("loading");
-	save.setAttribute("disabled", true);
-
-	putTodo(save.value, status.value, textarea.value);
-
-	save.classList.remove("loading");
-	save.setAttribute("disabled", false);
-
-};
-
-// send a PUT request
-const putTodo = async (id, status, body) => {
-	await fetch(`/todo/${id}`, {
-		method: "PUT",
-		body: JSON.stringify({
-			status: status,
-			body: body
-		}),
-		credentials: "include"
-	});
-	await updateTodoList();
-	bindListeners();
-};
-
-// function to bind ALL the listeners
-const bindListeners = () => {
-	bindDeleteListeners();
-	bindEditListeners();
-};
-
-/*
- * these are concerned with binding listeners on all the elements
- */
-const bindDeleteListeners = () => {
-	const deleteTodoForms = document.querySelectorAll(".delete-form");
-	for (const deleteForm of deleteTodoForms) {
-		deleteForm.addEventListener("submit", deleteTodoCallback);
-	}
-};
-
-const bindEditListeners = () => {
-	const todos = document.querySelectorAll(".todo");
-	for (const todo of todos) {
-		const doneForm = todo.querySelector(".done-form");
-		const editTextArea = todo.querySelector(".edit-body");
-		const editButton = todo.querySelector(".edit-button");
-
-		doneForm.addEventListener("submit", doneTodoCallback);
-		editTextArea.style.height = editTextArea.rows = editTextArea.value.split("\n").length;
-		editTextArea.addEventListener("keyup", event => event.target.rows = event.target.value.split("\n").length);
-		editButton.addEventListener("click", event => {
-			const todo = event.target.closest(".todo");
-			const save = todo.querySelector(".edit-todo .save");
-			const cancel = todo.querySelector(".edit-todo .cancel");
-			const editTodo = todo.querySelector(".edit-todo");
-			const renderedBody = todo.querySelector(".rendered-body");
-
-			editTodo.classList.toggle("editing");
-			renderedBody.classList.toggle("editing");
-			cancel.addEventListener("click", () => {
-				editTodo.classList.remove("editing");
-				renderedBody.classList.remove("editing");
-			});
-			save.addEventListener("click", editTodoCallback);
+const app = new Vue({
+	el: "#app",
+	data: {
+		allTodos: [],
+		todos: []
+	},
+	created: function () {
+		fetch("/todos.json", { credentials: "include" })
+		.then(res => res.json())
+		.then(json => {
+			this.allTodos = json;
+			this.todos = json;
 		});
+
+		eventBus.$on("delete", this.deleteTodo);
+		eventBus.$on("add", this.addTodo);
+		eventBus.$on("filter", this.filterTodos);
+	},
+	methods: {
+		deleteTodo: async function (id) {
+			const savedTodo = this.todos.find(todo => todo.todo_id === id);
+			const todoIndex = this.todos.indexOf(savedTodo);
+			this.todos = this.todos.filter(todo => todo.todo_id !== id);
+			try {
+				await fetch(`/todo/${id}`, {
+					method: "DELETE", 
+					credentials: "include"
+				});
+			} catch (error) {
+				console.error(error);
+				this.todos.splice(todoIndex, 0, savedTodo);
+			}
+		},
+		addTodo: function (todo) {
+			this.todos.unshift(todo);
+		},
+		filterTodos: function (status) {
+			if (status === "all") {
+				this.todos = this.allTodos;
+			} else {
+				this.todos = this.allTodos.filter(todo => todo.status === status);
+			}
+		}
 	}
-};
-
-// listen for submits on the add todo form
-addTodoForm.addEventListener("submit", async ev => {
-	const button = addTodoForm.querySelector("button");
-
-	ev.preventDefault();
-	button.classList.add("loading");
-
-	await fetch("/todo", {
-		method: "POST",
-		body: new FormData(ev.target),
-		credentials: "include"
-	}).catch(err => console.error(err));
-	await updateTodoList();
-	bindDeleteListeners();
-
-	addTodoForm.querySelector("textarea").value = "";
-	button.classList.remove("loading");
-	bindListeners();
 });
 
-// setup the inital listeners
-bindListeners();
+Vue.component("app-todo-creator", {
+	data: function () {
+		return {
+			loading: false
+		};
+	},
+	template: `
+	<form autocomplete="off" id="add-todo" @submit.prevent.stop="add">
+		<textarea class="todo-body" name="body" placeholder="todo..."></textarea>
+		<button :class="{ loading: loading }">Add Todo</button>
+	</form>
+	`,
+	methods: {
+		add: async function () {
+			this.loading = true;
+			const newTodo = await fetch("/todo", {
+				method: "POST",
+				body: new FormData(this.$el),
+				credentials: "include"
+			}).catch(err => console.error(err))
+			.then(res => res.json())
+			.then(json => json[0]);
+			eventBus.$emit("add", newTodo);
+			this.loading = false;
+		}
+	}
+});
+
+Vue.component("app-todo-toggles", {
+	data: function () {
+		return {
+			selected: "all"
+		};
+	},
+	template: `
+	<div>
+		<ul class="tabs">
+			<li 
+				class="tab-header"
+				@click="all"
+				:class="{ selected: selected === 'all' }">
+				All
+			</li>
+			<li 
+				class="tab-header" 
+				@click="todo"
+				:class="{ selected: selected === 'todo' }">
+				Todo
+			</li>
+			<li 
+				class="tab-header" 
+				@click="done"
+				:class="{ selected: selected === 'done' }">
+				Done
+			</li>
+		</ul>
+	</div>
+	`,
+	methods: {
+		all: function () {
+			this.selected = "all";
+			eventBus.$emit("filter", "all");
+		},
+		todo: function () {
+			this.selected = "todo";
+			eventBus.$emit("filter", "open");
+		},
+		done: function () {
+			this.selected = "done";
+			eventBus.$emit("filter", "done");
+		}
+	}
+});
+
+Vue.component("app-todo-list", {
+	props: ["todos"],
+	template: `
+	<ul class="todolist">
+		<app-todo v-for="todo in todos" :todo="todo"></app-todo>
+	</ul>
+	`
+});
+
+Vue.component("app-todo", {
+	props: ["todo"],
+	data: function () {
+		return {
+			editingTodo: false
+		};
+	},
+	template: `
+	<li 
+		class="todo" 
+		:class="{ done: todo.status === 'done' }">
+		<app-todo-editor 
+			:todo-id="todo.todo_id" 
+			:body="todo.body"
+			:editing="editingTodo"
+			@cancel="cancelEdit"
+			@save="saveChanges">
+		</app-todo-editor>
+		<div class="todo-actions">
+			<a href="/todo/{{ todo.todo_id }}">link</a>
+			<button class="edit-button" @click="toggleEdit">Edit</button>
+			<button class="done" @click="markDone">Done</button>
+			<button class="delete" @click="deleteTodo">Delete</button>
+		</div>
+	</li>
+	`,
+	methods: {
+		toggleEdit: function () {
+			this.editingTodo = !this.editingTodo;
+		},
+		cancelEdit: function () {
+			this.editingTodo = false;
+		},
+		deleteTodo: function () {
+			eventBus.$emit("delete", this.todo.todo_id);
+		},
+		_putTodo: function (status, body) {
+			return fetch(`/todo/${this.todo.todo_id}`, {
+				method: "PUT",
+				body: JSON.stringify({
+					status: status,
+					body: body
+				}),
+				credentials: "include"
+			});
+		},
+		markDone: async function () {
+			const oldStatus = this.todo.status;
+			const newStatus = oldStatus === "done" ? "open" : "done";
+			this.todo.status = newStatus;
+			try {
+				await this._putTodo(newStatus, this.todo.body);
+			} catch (error) {
+				console.error(error);
+				this.todo.status = oldStatus;
+			}
+		},
+		saveChanges: async function (body) {
+			// save the body so we can restore it if the PUT fails
+			const saveBody = this.todo.body;
+			this.todo.body = body;
+			this.cancelEdit();
+			try {
+				await this._putTodo(this.todo.status, this.todo.body)
+			} catch (error) {
+				console.error(error);
+				this.todo.body = saveBody;
+			}
+		}
+	}
+});
+
+Vue.component("app-todo-editor", {
+	props: ["todoId", "body", "editing"],
+	data: function () {
+		return {
+			rawText: this.body,
+			rows: this.body.split("\n").length
+		};
+	},
+	template: `
+	<div>
+		<div 
+			class="rendered-body" 
+			v-html="marked(body)"
+			:class="{ editing: editing }">
+		</div>
+		<div class="edit-todo" :class="{ editing: editing }">
+			<textarea
+				:rows="rows"
+				@keyup="resize"
+				class="todo-body edit-body"
+				v-model="rawText">{{ body }}</textarea>
+			<button class="save" @click="save">Save</button>
+			<button class="cancel" @click="cancel">Cancel</button>
+		</div>
+	</div>
+	`,
+	methods: {
+		cancel: function () {
+			this.$emit("cancel");
+		},
+		save: function () {
+			this.$emit("save", this.rawText);
+		},
+		resize: function () {
+			this.rows = this.rawText.split("\n").length;
+		}
+	}
+});

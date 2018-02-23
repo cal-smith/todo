@@ -1,6 +1,6 @@
 <?php
 function db_connect() {
-	$conn = pg_connect("host=localhost dbname=todo user=todouser password=todouser") or die(pg_last_error());
+	$conn = pg_connect("host=cloud.reallyawesomedomain.com dbname=todo user=todouser password=todouser") or die(pg_last_error());
 	return $conn;
 }
 

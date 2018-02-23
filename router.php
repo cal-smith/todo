@@ -69,12 +69,12 @@ class Router {
 	public function run() {
 		$path = $_SERVER["REQUEST_URI"];
 		$path_array = explode("/", parse_url($path, PHP_URL_PATH));
+		$matching = false;
 		foreach ($this->routes as $route_info) {
 			$route = $route_info["route"];
 			$route_array = explode("/", $route);
 			$route_method = $route_info["method"];
 			$route_callback = $route_info["callback"];
-			$matching = false;
 			$args = [];
 			// check if the whole path matches, and dispatch
 			if ($path === $route && $_SERVER["REQUEST_METHOD"] === $route_method) {
@@ -111,6 +111,14 @@ class Router {
 					call_user_func($route_callback, $args);
 				}
 				break;
+			}
+		}
+
+		if (!$matching) {
+			if (php_sapi_name() == "cli-server") {
+				return false;
+			} else {
+				echo "404";
 			}
 		}
 	}

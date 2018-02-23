@@ -45,6 +45,12 @@ $router->get_guarded("/todos", function() {
 	require "views/todo-list.php";
 });
 
+$router->get_guarded("/todos.json", function() {
+	// global $todos;
+	$todos = new Todos();
+	echo json_encode($todos->get_all());
+});
+
 $router->post("/login", function() {
 	$id_token = $_POST["token"];
 
@@ -142,7 +148,7 @@ $router->post_guarded("/delete/todo", function() {
 	delete_todo($_POST["id"], false);
 });
 
-$router->run();
+// $router->run();
 
 function delete_todo($id, $using_rest) {
 	// exit if the id is empty
@@ -208,12 +214,15 @@ function add_todo($using_rest) {
 
 	session_start();
 	$conn = db_connect();
-	$query = "insert into todos (todo_id, body, user_id) values ($1, $2, $3)";
+	$query = "insert into todos (todo_id, body, user_id) values ($1, $2, $3) returning *";
 	$result = pg_query_params($conn, $query, [$id, $body, $_SESSION["user_id"]]);
 	session_write_close();
 
 	if (!$result) { send_error(500, "db error"); }
 
+	global $todos;
+	$todo = $todos->result_to_array($result);
+	
 	pg_free_result($result);
 	pg_close($conn);
 
@@ -222,5 +231,8 @@ function add_todo($using_rest) {
 	} else {
 		header("Location: /");
 	}
-	echo "added todo";
+
+	echo json_encode($todo);
 }
+
+$router->run();
