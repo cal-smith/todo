@@ -8,7 +8,7 @@ require_once "vendor/autoload.php";
 require_once "common.php";
 require_once "router.php";
 require_once "todos.php";
-require_once "views/render-todo.php";
+require_once "views/todo.php";
 use Ramsey\Uuid\Uuid;
 
 $router = new Router();
@@ -21,7 +21,10 @@ $router->set_route_guard(function() {
 		session_write_close();
 		$conn = db_connect();
 
-		$result = pg_query_params($conn, "select * from users where user_id = $1 limit 1", [$user_id]);
+		$result = pg_query_params(
+			$conn, 
+			"select * from users where user_id = $1 limit 1", 
+			[$user_id]);
 
 		if (!$result) { send_error(500, "db error"); }
 
@@ -39,16 +42,6 @@ $router->set_route_guard(function() {
 // all our fancy restful routes
 $router->get("/", function() {
 	require "views/main.php";
-});
-
-$router->get_guarded("/todos", function() {
-	require "views/todo-list.php";
-});
-
-$router->get_guarded("/todos.json", function() {
-	// global $todos;
-	$todos = new Todos();
-	echo json_encode($todos->get_all());
 });
 
 $router->post("/login", function() {
@@ -107,20 +100,25 @@ $router->get("/logout", function() {
 	header("Location: /");
 });
 
+$router->get_guarded("/todos", function() {
+	require "views/todo-list.php";
+});
+
+$router->get_guarded("/todos.json", function() {
+	// global $todos;
+	$todos = new Todos();
+	echo json_encode($todos->get_all());
+});
+
 $router->get("/todo/<id>", function($params) {
 	global $todos;
 	render_todo($todos->get_one($params["id"]));
 });
 
-$router->get("/render/todos/<state>", function($params) {
+$router->get("/todo/<id>.json", function($params) {
 	global $todos;
-	if ($params["state"] === "open") {
-		render_todo_list($todos->get_open());
-	} else if ($params["state"] === "done") {
-		render_todo_list($todos->get_done());
-	} else {
-		render_todo_list($todos->get_all());
-	}
+	$id = str_replace(".json", "", $params["id"]);
+	echo json_encode($todos->get_one($id));
 });
 
 $router->post_guarded("/todo", function($params) {
@@ -155,11 +153,12 @@ function delete_todo($id, $using_rest) {
 	if ($id == "") { send_error(400, "id shouldn't be empty (delete)");	}
 
 	$conn = db_connect();
-	$query = "delete from todos where todo_id = $1";
-	$result = pg_query_params($conn, $query, [$id]);
+	$query = "update todos set (status) = deleted where todo_id = $1 and user_id = $2";
+	// $query = "delete from todos where todo_id = $1 and user_id = $2";
+	$result = pg_query_params($conn, $query, [$id, $_SESSION["user_id"]]);
 
 	// exit if we get a false (error) result
-	if (!$result) { send_error(500, "db error"); }
+	if (!$result) { send_error(500, "db error" . pg_last_error()); }
 
 	pg_free_result($result);
 	pg_close($conn);
@@ -187,9 +186,13 @@ function edit_todo($id, $using_rest) {
 		$body = $_POST["body"];
 	}
 
+	if ($status !== "done" || $status !== "open") {
+		send_error(400, "invalid status: " . $status);
+	}
+
 	$conn = db_connect();
-	$query = "update todos set (status, body) = ($1, $2) where todo_id = $3";
-	$result = pg_query_params($conn, $query, [$status, $body, $id]);
+	$query = "update todos set (status, body) = ($1, $2) where todo_id = $3 and user_id = $4";
+	$result = pg_query_params($conn, $query, [$status, $body, $id, $_SESSION["user_id"]]);
 
 	// exit if we get a false (error) result
 	if (!$result) { send_error(500, "db error" . $_SERVER["REQUEST_METHOD"]); }

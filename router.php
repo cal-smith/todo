@@ -68,11 +68,11 @@ class Router {
 
 	public function run() {
 		$path = $_SERVER["REQUEST_URI"];
-		$path_array = explode("/", parse_url($path, PHP_URL_PATH));
+		$path_array = preg_split("/[\/\.]/", parse_url($path, PHP_URL_PATH));
 		$matching = false;
 		foreach ($this->routes as $route_info) {
 			$route = $route_info["route"];
-			$route_array = explode("/", $route);
+			$route_array = preg_split("/[\/\.]/", $route);
 			$route_method = $route_info["method"];
 			$route_callback = $route_info["callback"];
 			$args = [];

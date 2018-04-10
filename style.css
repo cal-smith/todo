@@ -188,7 +188,8 @@ a:visited {
 }
 
 .tabs li:hover {
-	background: lightblue;
+	background: #158bff;
+	color: white;
 }
 
 .tabs li a {
@@ -281,4 +282,30 @@ a:visited {
 .todo .todo-actions form, 
 .todo .todo-actions > button {
 	margin-left: 10px;
+}
+
+/*
+ *
+ * Share dialog styles
+ *
+ */
+.share {
+	border: 1px solid var(--default-border-color);
+	border-radius: var(--default-border-radius);
+}
+
+.share + .backdrop, .share::backdrop {
+	background: rgba(0,0,0,0.4);
+}
+
+.share header {
+	margin-bottom: 10px;
+}
+
+.share h3 {
+	margin: 0;
+}
+
+.share footer {
+	margin-top: 10px;
 }

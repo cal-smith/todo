@@ -163,11 +163,29 @@ Vue.component("app-todo", {
 			@save="saveChanges">
 		</app-todo-editor>
 		<div class="todo-actions">
-			<a href="/todo/{{ todo.todo_id }}">link</a>
+			<a href="#share" @click.prevent="share">Share</a>
 			<button class="edit-button" @click="toggleEdit">Edit</button>
 			<button class="done" @click="markDone">Done</button>
 			<button class="delete" @click="deleteTodo">Delete</button>
 		</div>
+		<dialog class="share" ref="dialog">
+			<header>
+				<h3>Share</h3>
+			</header>
+			<section>
+				<label>
+					Link: 
+					<input 
+						type="text" 
+						ref="url"
+						:value="location.origin + '/todo/' + todo.todo_id"/>
+				</label>
+				<button @click="copyShareLink">Copy</button>
+			</section>
+			<footer>
+				<button @click="closeShare">Close</button>
+			</footer>
+		</dialog>
 	</li>
 	`,
 	methods: {
@@ -212,6 +230,18 @@ Vue.component("app-todo", {
 				console.error(error);
 				this.todo.body = saveBody;
 			}
+		},
+		share: function () {
+			dialogPolyfill.registerDialog(this.$refs.dialog);
+			this.$refs.dialog.showModal();
+			this.$refs.url.select();
+		},
+		copyShareLink: function () {
+			this.$refs.url.select();
+			document.execCommand("copy");
+		},
+		closeShare: function () {
+			this.$refs.dialog.close();
 		}
 	}
 });

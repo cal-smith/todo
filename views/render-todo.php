@@ -25,12 +25,25 @@ function render_todo_body($todo) {
 	</div>
 	<div class="todo-actions">
 		<a href="/todo/<?= $todo["todo_id"] ?>">link</a>
+
 		<button class="edit-button">Edit</button>
-		<form class="done-form" action="/put/todo" autocomplete="off" method="post" id="edit-todo-<?= $todo["todo_id"] ?>">
+
+		<form
+			class="done-form" 
+			action="/put/todo" 
+			autocomplete="off" 
+			method="post"
+			id="edit-todo-<?= $todo["todo_id"] ?>">
 			<input type="hidden" name="status" value="<?= $todo["status"] ?>"/>
 			<button class="done" name="id" value="<?= $todo["todo_id"] ?>">Done</button>
 		</form>
-		<form class="delete-form" action="/delete/todo" autocomplete="off" method="post" id="delete-todo-<?= $todo["todo_id"] ?>">
+
+		<form 
+			class="delete-form"
+			action="/delete/todo" 
+			autocomplete="off" 
+			method="post" 
+			id="delete-todo-<?= $todo["todo_id"] ?>">
 			<button class="delete" name="id" value="<?= $todo["todo_id"] ?>">Delete</button>
 		</form>
 	</div>
@@ -40,7 +53,7 @@ function render_todo_body($todo) {
 ?>
 
 <?php
-function render_todo($todo) {
+function render_todo1($todo) {
 ?>
 	<!DOCTYPE html>
 	<html>
@@ -54,7 +67,7 @@ function render_todo($todo) {
 		<main>
 			<ul class="todolist">
 				<?= render_todo_body($todo) ?>
-			<ul class="todolist">
+			</ul>
 		</main>
 	</body>
 	</html>

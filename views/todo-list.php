@@ -11,6 +11,7 @@
 	<meta name="google-signin-client_id" content="1039409467454-e7tgm1e5vj32joa660tmukp0ob2m0td7.apps.googleusercontent.com">
 	<title>todo</title>
 	<link rel="stylesheet" type="text/css" href="/style.css">
+	<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/dialog-polyfill@0.4.9/dialog-polyfill.css">
 </head>
 <body>
 	<main id="app">
@@ -25,6 +26,7 @@
 	</main>
 	<script src="https://cdn.jsdelivr.net/npm/vue"></script>
 	<script src="https://cdn.jsdelivr.net/npm/marked@0.3.16/lib/marked.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/dialog-polyfill@0.4.9/dialog-polyfill.min.js"></script>
 	<script src="https://apis.google.com/js/platform.js"></script>
 	<script type="text/javascript" src="index.js"></script>
 </body>
